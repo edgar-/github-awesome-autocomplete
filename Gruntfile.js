@@ -5,7 +5,7 @@ module.exports = function(grunt) {
   var firefox_pkg = grunt.file.readJSON('code/firefox.json');
 
   var fileMaps = { browserify: {}, uglify: {} };
-  var file, files = grunt.file.expand({cwd:'code/js'}, ['*.js', 'libs/*.js', 'chrome/*.js']);
+  var file, files = grunt.file.expand({cwd:'code/js'}, ['*.js', 'libs/*.js', 'chrome/*.js', 'safari/*.js']);
   for (var i = 0; i < files.length; i++) {
     file = files[i];
     fileMaps.browserify['build/unpacked-dev/js/' + file] = 'code/js/' + file;
@@ -20,11 +20,12 @@ module.exports = function(grunt) {
 
   grunt.initConfig({
 
-    clean: ['build/unpacked-dev', 'build/unpacked-prod', 'build/*.crx'],
+    clean: ['build/unpacked-dev', 'build/unpacked-prod', 'build/*.crx', 'build/*.safariextension'],
 
     mkdir: {
-      unpacked: { options: { create: ['build/unpacked-dev', 'build/unpacked-prod'] } },
-      js: { options: { create: ['build/unpacked-dev/js'] } }
+      unpacked: { options: { create: ['build/unpacked-dev', 'build/unpacked-prod', 'build/github-awesome-autocomplete.safariextension'] } },
+      js: { options: { create: ['build/unpacked-dev/js'] } },
+      css: { options: { create: ['build/unpacked-dev/css'] } }
     },
 
     jshint: {
@@ -40,10 +41,16 @@ module.exports = function(grunt) {
         src: ['**', '!js/**', '!**/*.md'],
         dest: 'build/unpacked-dev/'
       } ] },
+      safari: { files: [ {
+        expand: true,
+        cwd: 'build/unpacked-dev/',
+        src: ['**', '!chrome.json', '!firefox.json', '!manifest.json'],
+        dest: 'build/github-awesome-autocomplete.safariextension'
+      } ] },
       prod: { files: [ {
         expand: true,
         cwd: 'build/unpacked-dev/',
-        src: ['**', '!js/*.js'],
+        src: ['**', '!js/*.js', '!**/*.md', '!Info.plist'],
         dest: 'build/unpacked-prod/'
       } ] },
       artifact: { files: [ {
@@ -57,17 +64,19 @@ module.exports = function(grunt) {
     browserify: {
       build: {
         files: fileMaps.browserify,
-        options: { bundleOptions: {
-          debug: true,  // for source maps
-          standalone: pkg['export-symbol']
-        } }
+        options: {
+          browserifyOptions: {
+            debug: true,  // for source maps
+            standalone: pkg['export-symbol']
+          }
+        }
       }
     },
 
     exec: {
       crx: {
         cmd: [
-          './crxmake.sh build/unpacked-prod ./mykey.pem',
+          './scripts/crxmake.sh build/unpacked-prod ./mykey.pem',
           'mv -v ./unpacked-prod.crx "build/' + pkg.name + '-' + pkg.version + '.crx"',
           '(cd build && zip -r "' + pkg.name + '-' + pkg.version + '.zip" unpacked-prod)'
         ].join(' && ')
@@ -77,12 +86,12 @@ module.exports = function(grunt) {
           'cp code/js/firefox/main.js build/firefox/index.js',
           'rm -rf build/firefox/data', 'mkdir build/firefox/data',
           'cp -R code/js/libs build/firefox/data',
-          'cp code/js/content.js build/firefox/data/content.js',
+          'cp code/js/*.js build/firefox/data/',
           'cp code/images/* build/firefox/data/',
           'cp code/html/* build/firefox/data/',
-          'cp code/css/* build/firefox/data/',
+          'cp build/unpacked-dev/css/* build/firefox/data/',
           '(cd build/firefox && ../../node_modules/jpm/bin/jpm xpi)',
-          'mv build/firefox/github-awesome-autocomplete@algolia.com.xpi build/'
+          'mv build/firefox/github-awesome-autocomplete@algolia.com-' + pkg.version + '.xpi build/'
         ].join(' && ')
       }
     },
@@ -105,7 +114,7 @@ module.exports = function(grunt) {
           style: 'expanded'
         },
         files: {
-          'code/css/content.css': 'code/scss/content.sass'
+          'build/unpacked-dev/css/content.css': 'code/scss/content.sass'
         }
       }
     }
@@ -165,7 +174,7 @@ module.exports = function(grunt) {
   // DEFAULT
   //
 
-  grunt.registerTask('default', ['clean', 'test', 'sass', 'mkdir:unpacked', 'copy:main', 'chrome-manifest', 'firefox-package',
-    'mkdir:js', 'browserify', 'copy:prod', 'uglify', 'exec']);
+  grunt.registerTask('default', ['clean', 'test', 'mkdir:css', 'sass', 'mkdir:unpacked', 'copy:main', 'chrome-manifest', 'firefox-package',
+    'mkdir:js', 'browserify', 'copy:prod', 'copy:safari', 'uglify', 'exec']);
 
 };

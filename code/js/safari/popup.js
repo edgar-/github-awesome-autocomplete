@@ -1,16 +1,15 @@
-/* global document, chrome, self */
-
+/* global document, safari */
 var button = document.getElementById('refresh-button');
 button.addEventListener('click', function() {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    chrome.tabs.sendMessage(tabs[0].id, {type: 'connect-with-github'});
-  });
+  safari.application.activeBrowserWindow.openTab().url = 'https://github.algolia.com/signin';
+  safari.self.hide();
   return false;
 });
 
 var gotoLink = function(link) {
-  chrome.tabs.executeScript({ code: 'location.href="' + link.getAttribute('href') +'"' });
-  self.close();
+  var newTab = safari.application.activeBrowserWindow.openTab();
+  newTab.url = link.getAttribute('href');
+  safari.self.hide();
 };
 
 var links = ['github-repository', 'github-issues', 'algolia-link'];
